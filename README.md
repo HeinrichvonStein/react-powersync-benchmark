@@ -1,0 +1,1 @@
+# React + Powersync Performance Benchmark
