@@ -78,11 +78,11 @@ export default function TodoListsPage() {
             addString(`${new Date().toISOString()} Number of rows that will be uploaded: ${uploadQueueSize}`);
         }
 
-        if (uploadQueueSize == 0) {
-            uploadStopwatch.stop();
-            addString(`${new Date().toISOString()} Uploaded ${uploadQueueSize} lists in ${uploadStopwatch.getElapsedTime()} ms`);
-            uploadStopwatch.reset()
-        }
+        // if (uploadQueueSize === 0) {
+        //     uploadStopwatch.stop();
+        //     addString(`${new Date().toISOString()} Uploaded ${uploadQueueSize} lists in ${uploadStopwatch.getElapsedTime()} ms`);
+        //     uploadStopwatch.reset()
+        // }
     }, [uploadQueue]);
 
     useEffect(() => {
@@ -106,15 +106,15 @@ export default function TodoListsPage() {
     useEffect(() => {
         const downloadSize = downloadedRows[0]?.ps_log_count;
         if (downloadSize > 0) {
-            downloadStopwatch.start();
+            // downloadStopwatch.start();
             addString(`${new Date().toISOString()} Processing ${downloadSize} sync operations`);
         }
 
-        if (downloadSize == 0) {
-            downloadStopwatch.stop();
-            addString(`${new Date().toISOString()} ${downloadSize} sync operations completed in ${downloadStopwatch.getElapsedTime()} ms`);
-            downloadStopwatch.reset()
-        }
+        // if (downloadSize == 0) {
+        //     downloadStopwatch.stop();
+            // addString(`${new Date().toISOString()} ${downloadSize} sync operations completed in ${downloadStopwatch.getElapsedTime()} ms`);
+            // downloadStopwatch.reset()
+        // }
     }, [downloadedRows]);
     return (
         <NavigationPage title="Benchmark">
