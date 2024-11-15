@@ -1,6 +1,6 @@
 import {v4 as uuid} from 'uuid';
 
-import { AbstractPowerSyncDatabase, CrudBatch, PowerSyncBackendConnector } from '@powersync/web';
+import {AbstractPowerSyncDatabase, CrudBatch, PowerSyncBackendConnector} from '@powersync/web';
 
 export type DemoConfig = {
   backendUrl: string;
@@ -64,7 +64,6 @@ export class CloudCodeConnector implements PowerSyncBackendConnector {
         break;
       }
     }
-
     return;
   }
 

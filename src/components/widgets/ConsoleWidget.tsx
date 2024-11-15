@@ -6,16 +6,16 @@ import {List, styled} from "@mui/material";
 export type ConsoleProps = {
     logs: string[];
 };
-export const ConsolePanel = (props: ConsoleProps) => {
-
+export const ConsoleWidget = (props: ConsoleProps) => {
     return (
         <List>
-                {props.logs.length > 0 ? props.logs.map((r) => (
-                    <S.Panel>
-                        {r}
-                    </S.Panel>
-                )) : <S.Panel>
-                </S.Panel>}
+            {props.logs.length > 0 ? props.logs.map((r, index) => (
+                <S.Panel key={index}>
+                    {r}
+                </S.Panel>
+            )) : <S.Panel>
+                No logs to display
+            </S.Panel>}
         </List>
     );
 }

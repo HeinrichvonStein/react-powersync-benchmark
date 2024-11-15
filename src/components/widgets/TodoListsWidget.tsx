@@ -1,32 +1,50 @@
-import {ListRecord, LISTS_TABLE, TODOS_TABLE} from '@/library/powersync/AppSchema';
-import {List} from '@mui/material';
+import {ListRecord, LISTS_TABLE} from '@/library/powersync/AppSchema';
+import {Box, List, TablePagination} from '@mui/material';
 import {useQuery} from '@powersync/react';
 import {ListItemWidget} from './ListItemWidget';
+import React, {useState} from 'react';
 
-export type TodoListsWidgetProps = {
-    limit: number;
-};
+export function TodoListsWidget() {
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [page, setPage] = useState(0);
+    const {data: rowCount} = useQuery(`SELECT COUNT() as rowCount FROM ${LISTS_TABLE}`);
 
+    const offset = page * rowsPerPage;
+    const { data: listRecords } = useQuery<ListRecord & { totalCount: number }>(
+        `
+            SELECT ${LISTS_TABLE}.*
+            FROM ${LISTS_TABLE}
+            LIMIT ${rowsPerPage}
+            OFFSET ${offset}
+        `
+    );
 
-export function TodoListsWidget(props: TodoListsWidgetProps) {
+    const handleChangePage = (_event: unknown, newPage: number) => {
+        setPage(newPage);
+    };
 
-    const {data: listRecords} = useQuery<ListRecord & { total_tasks: number; completed_tasks: number }>(`
-        SELECT ${LISTS_TABLE}.*,
-               COUNT(${TODOS_TABLE}.id)                                         AS total_tasks,
-               SUM(CASE WHEN ${TODOS_TABLE}.completed = true THEN 1 ELSE 0 END) as completed_tasks
-        FROM ${LISTS_TABLE}
-                 LEFT JOIN ${TODOS_TABLE} ON ${LISTS_TABLE}.id = ${TODOS_TABLE}.list_id
-        GROUP BY ${LISTS_TABLE}.id LIMIT ${props.limit};
-    `);
+    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
 
     return (
-        <List dense={false}>
-            {listRecords.map((r) => (
-                <ListItemWidget
-                    key={r.id}
-                    title={r.name ?? ''}
-                />
-            ))}
-        </List>
+        <Box>
+            <TablePagination
+                component="div"
+                count={rowCount[0]?.rowCount || 0} // Total number of records
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Rows per page:"
+                rowsPerPageOptions={[10, 100, 1000, 2000]}
+            />
+            <List dense={false}>
+                {listRecords.map((r) => (
+                    <ListItemWidget key={r.id} title={r.name ?? ''} />
+                ))}
+            </List>
+        </Box>
     );
 }

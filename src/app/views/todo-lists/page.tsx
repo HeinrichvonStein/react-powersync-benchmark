@@ -1,13 +1,13 @@
 import {usePowerSync, useQuery} from '@powersync/react';
-import {Box, styled} from '@mui/material';
-import Fab from '@mui/material/Fab';
+import {Box, Button, styled, Typography} from '@mui/material';
 import React, {useEffect} from 'react';
 import {NavigationPage} from '@/components/navigation/NavigationPage';
 import {TodoListsWidget} from '@/components/widgets/TodoListsWidget';
 import {LISTS_TABLE} from '@/library/powersync/AppSchema';
 import {useConnector} from '@/components/providers/SystemProvider';
-import {ConsolePanel} from "@/components/console";
+import {ConsoleWidget} from "@/components/widgets/ConsoleWidget";
 import Stopwatch from "@/library/Stopwatch";
+import TableTabWidget from "@/components/widgets/TableTabWidget";
 
 export default function TodoListsPage() {
     const uploadStopwatch = new Stopwatch();
@@ -17,14 +17,25 @@ export default function TodoListsPage() {
     const [syncStatus, setSyncStatus] = React.useState(powerSync.currentStatus);
     const [logList, setLogList] = React.useState<string[]>([]);
     const {data: downloadedRows} = useQuery(`SELECT COUNT() as ps_log_count FROM ps_oplog`);
-    const {data: uploadedRows} = useQuery(`SELECT COUNT() as ps_crud_count FROM ps_crud`);
+    const {data: uploadQueue} = useQuery(`SELECT COUNT() as ps_crud_count FROM ps_crud`);
+
+    const [initialLoad, setInitialLoad] = React.useState(true)
+
+    React.useEffect(() => {
+        const l = powerSync.registerListener({
+            statusChanged: (status) => {
+                setSyncStatus(status);
+            }
+        });
+        return () => l?.();
+    }, [powerSync]);
+
 
     const addString = (newString: string) => {
         setLogList([...logList, newString]);
     };
 
     const createNewList = async (numberOfRows: number) => {
-        setLogList([]);
         const insertStopwatch = new Stopwatch();
 
         const userID = connector?.userId;
@@ -33,7 +44,7 @@ export default function TodoListsPage() {
         }
 
         const values = Array(numberOfRows).fill(`(uuid(), datetime(), ?, ?)`).join(", ");
-        const placeholders = Array.from({length: numberOfRows}, (_, i) => [`TodoList Name-${i + 1}`, userID]).flat();
+        const placeholders = Array.from({length: numberOfRows}, (_, i) => [`TodoList - ${i + 1}`, userID]).flat();
 
         insertStopwatch.start();
         await powerSync.execute(
@@ -43,6 +54,7 @@ export default function TodoListsPage() {
         );
         insertStopwatch.stop();
         addString(`${new Date().toISOString()} [LocalDB] Inserted ${numberOfRows} lists in ${insertStopwatch.getElapsedTime()} ms`);
+        insertStopwatch.reset()
     };
 
     const {data: listRecords} = useQuery<{ total: number }>(`
@@ -51,78 +63,133 @@ export default function TodoListsPage() {
     `);
 
     const deleteLists = async () => {
+        addString(`${new Date().toISOString()} Deleting all lists`);
         await powerSync.writeTransaction(async (tx) => {
-            // Delete list record
             await tx.execute(`DELETE
                               FROM ${LISTS_TABLE}`);
         });
         setLogList([]);
     };
 
-    // TODO Change logs to be array of strings
     useEffect(() => {
-        if (uploadedRows[0]?.ps_crud_count > 0) {
+        const uploadQueueSize = uploadQueue[0]?.ps_crud_count;
+        if (uploadQueueSize > 0) {
             uploadStopwatch.start();
-            addString(`${new Date().toISOString()} Number of rows that will be uploaded: ${uploadedRows[0]?.ps_crud_count}`);
+            addString(`${new Date().toISOString()} Number of rows that will be uploaded: ${uploadQueueSize}`);
         }
-        if (uploadedRows[0]?.ps_crud_count == 0) {
+
+        if (uploadQueueSize == 0 && !initialLoad) {
             uploadStopwatch.stop();
+            addString(`${new Date().toISOString()} Uploaded ${uploadQueueSize} lists in ${uploadStopwatch.getElapsedTime()} ms`);
             uploadStopwatch.reset()
         }
-    }, [uploadedRows]);
-    // TODO Check download time
+    }, [uploadQueue]);
+
     useEffect(() => {
-        if (uploadedRows[0]) {
-            addString(`${new Date().toISOString()} Number of rows that will be downloaded: ${uploadedRows[0]?.ps_crud_count}`);
+        if (syncStatus.hasSynced) {
+            // addString(`${new Date().toISOString()} Full Sync has been completed`);
+            setInitialLoad(false)
+        }
+        // if (!syncStatus.hasSynced) {
+        //     addString(`${new Date().toISOString()} Waiting for sync`);
+        // }
+    }, [syncStatus.hasSynced]);
+
+    // useEffect(() => {
+    //     if (syncStatus?.dataFlowStatus.uploading) {
+    //         addString(`${new Date().toISOString()} Powersync uploading data`);
+    //     }
+    //     if (syncStatus?.dataFlowStatus.downloading) {
+    //         addString(`${new Date().toISOString()} Powersync downloading data`);
+    //     }
+    // }, [syncStatus?.dataFlowStatus]);
+
+    useEffect(() => {
+        const downloadSize = downloadedRows[0]?.ps_log_count;
+        if (downloadSize > 0) {
+            downloadStopwatch.start();
+            addString(`${new Date().toISOString()} Number of rows that will be downloaded: ${downloadSize}`);
+        }
+
+        if (downloadSize == 0 && !initialLoad) {
+            downloadStopwatch.stop();
+            addString(`${new Date().toISOString()} Downloaded ${downloadSize} lists in ${downloadStopwatch.getElapsedTime()} ms`);
+            downloadStopwatch.reset()
         }
     }, [downloadedRows]);
     return (
-        <NavigationPage title="Todo Lists">
+        <NavigationPage title="Benchmark">
             <Box>
+                <S.Row>
+                    <S.StyledButton onClick={() => createNewList(2000)}>
+                        {'insert 2k'}
+                    </S.StyledButton>
+                    <S.StyledButton onClick={() => createNewList(5000)} >
+                        {'insert 5k'}
+                    </S.StyledButton>
+                    <S.StyledButton onClick={() => createNewList(10000)}>
+                        {'insert 10k'}
+                    </S.StyledButton>
+                    <S.DangerButton onClick={() => deleteLists()}>
+                        {'Empty DB'}
+                    </S.DangerButton>
+                </S.Row>
                 <S.Container>
                     <S.Column>
-                        <ConsolePanel logs={logList}/>
+                        <ConsoleWidget logs={logList}/>
                     </S.Column>
                     <S.Column>
-                        Row count: {listRecords.map((r) => r.total)}
-                        <div>Preview: 5</div>
-                        {/*TODO Select limit*/}
-                        <TodoListsWidget limit={5}/>
+                        <Typography style={{margin: '5px'}} variant="body1" gutterBottom>Row count: {listRecords.map((r) => r.total)}</Typography>
+                        <TodoListsWidget/>
                     </S.Column>
                 </S.Container>
-                <S.FloatingActionButton onClick={() => deleteLists()} sx={{right: 20}}>
-                    {'clear'}
-                </S.FloatingActionButton>
-                <S.FloatingActionButton onClick={() => createNewList(2000)} sx={{right: 100}}>
-                    {'insert 2k'}
-                </S.FloatingActionButton>
-                <S.FloatingActionButton onClick={() => createNewList(5000)} sx={{right: 200}}>
-                    {'insert 5k'}
-                </S.FloatingActionButton>
-                <S.FloatingActionButton onClick={() => createNewList(10000)} sx={{right: 300}}>
-                    {'insert 10k'}
-                </S.FloatingActionButton>
+                    <TableTabWidget />
             </Box>
         </NavigationPage>
     );
 }
-
 namespace S {
-    export const FloatingActionButton = styled(Fab)`
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        padding: 0 10px;
-        min-width: auto;
-        width: auto;
-        height: auto;
-    `;
-
     export const Container = styled(Box)({
         display: 'flex',
         gap: '20px',
         width: '100%',
         height: '70%',
+    });
+
+    export const Row = styled(Box)({
+        display: 'flex',
+        justifyContent: 'right',
+        paddingBottom: '5px',
+        gap: '5px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+    });
+
+    export const StyledButton = styled(Button)({
+        border: '1px solid #ccc',
+        padding: '10px 20px',
+        transition: 'background-color 0.3s, border-color 0.3s',
+        backgroundColor: '#c3c3c3',
+        color: '#000000',
+        '&:hover': {
+            backgroundColor: '#ee01ff',
+            color: '#ffffff',
+            borderColor: '#115293',
+        },
+    });
+
+    export const DangerButton = styled(Button)({
+        border: '1px solid #ccc',
+        padding: '10px 20px',
+        transition: 'background-color 0.3s, border-color 0.3s',
+        backgroundColor: '#c3c3c3',
+        color: '#000000',
+        '&:hover': {
+            backgroundColor: '#ff0000',
+            color: '#ffffff',
+            borderColor: '#115293',
+        },
     });
 
     export const Column = styled(Box)({
