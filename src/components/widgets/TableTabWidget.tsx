@@ -6,6 +6,7 @@ import DataTableWidget from "@/components/widgets/DataTableWidget";
 import {useQuery} from "@powersync/react";
 import {ListRecord, LISTS_TABLE} from "@/library/powersync/AppSchema";
 import {GridColDef} from "@mui/x-data-grid";
+import {Typography} from "@mui/material";
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -66,11 +67,12 @@ export default function TableTabWidget() {
     return (
         <>
             <Box sx={{width: '100%'}}>
+                <Typography style={{margin: '5px'}} variant="h4" gutterBottom>Data Tables</Typography>
             <Box sx={{borderBottom: 1, borderColor: 'divider'}}>
                 <Tabs value={value} onChange={handleChange}>
                     <Tab label="Lists"/>
-                    <Tab label="ps_oplog"/>
-                    <Tab label="ps_crrud"/>
+                    <Tab label="Sync Operations"/>
+                    <Tab label="Upload queue"/>
                 </Tabs>
             </Box>
                 <TabPanel value={value} index={0}>

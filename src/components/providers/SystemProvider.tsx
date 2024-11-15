@@ -12,7 +12,10 @@ export const db = new PowerSyncDatabase({
     dbFilename: 'example.db'
   },
   schema: AppSchema,
-  logger: Logger
+  logger: Logger,
+  flags: {
+    useWebWorker: false
+  }
 });
 
 // Make db accessible on the console for debugging

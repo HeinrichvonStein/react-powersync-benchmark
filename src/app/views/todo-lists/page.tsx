@@ -18,8 +18,8 @@ export default function TodoListsPage() {
     const [logList, setLogList] = React.useState<string[]>([]);
     const {data: downloadedRows} = useQuery(`SELECT COUNT() as ps_log_count FROM ps_oplog`);
     const {data: uploadQueue} = useQuery(`SELECT COUNT() as ps_crud_count FROM ps_crud`);
-
-    const [initialLoad, setInitialLoad] = React.useState(true)
+    const { data: oplogResults } = useQuery(`SELECT * FROM ps_oplog`);
+    const { data: crudResults } = useQuery(`SELECT * FROM ps_crud`);
 
     React.useEffect(() => {
         const l = powerSync.registerListener({
@@ -78,7 +78,7 @@ export default function TodoListsPage() {
             addString(`${new Date().toISOString()} Number of rows that will be uploaded: ${uploadQueueSize}`);
         }
 
-        if (uploadQueueSize == 0 && !initialLoad) {
+        if (uploadQueueSize == 0) {
             uploadStopwatch.stop();
             addString(`${new Date().toISOString()} Uploaded ${uploadQueueSize} lists in ${uploadStopwatch.getElapsedTime()} ms`);
             uploadStopwatch.reset()
@@ -87,33 +87,32 @@ export default function TodoListsPage() {
 
     useEffect(() => {
         if (syncStatus.hasSynced) {
-            // addString(`${new Date().toISOString()} Full Sync has been completed`);
-            setInitialLoad(false)
+            addString(`${new Date().toISOString()} Full Sync has been completed`);
         }
-        // if (!syncStatus.hasSynced) {
-        //     addString(`${new Date().toISOString()} Waiting for sync`);
-        // }
+        if (!syncStatus.hasSynced) {
+            addString(`${new Date().toISOString()} Waiting for sync`);
+        }
     }, [syncStatus.hasSynced]);
 
-    // useEffect(() => {
-    //     if (syncStatus?.dataFlowStatus.uploading) {
-    //         addString(`${new Date().toISOString()} Powersync uploading data`);
-    //     }
-    //     if (syncStatus?.dataFlowStatus.downloading) {
-    //         addString(`${new Date().toISOString()} Powersync downloading data`);
-    //     }
-    // }, [syncStatus?.dataFlowStatus]);
+    useEffect(() => {
+        if (syncStatus?.dataFlowStatus.uploading) {
+            addString(`${new Date().toISOString()} Powersync uploading data`);
+        }
+        if (syncStatus?.dataFlowStatus.downloading) {
+            addString(`${new Date().toISOString()} Powersync downloading data`);
+        }
+    }, [syncStatus?.dataFlowStatus]);
 
     useEffect(() => {
         const downloadSize = downloadedRows[0]?.ps_log_count;
         if (downloadSize > 0) {
             downloadStopwatch.start();
-            addString(`${new Date().toISOString()} Number of rows that will be downloaded: ${downloadSize}`);
+            addString(`${new Date().toISOString()} Processing ${downloadSize} sync operations`);
         }
 
-        if (downloadSize == 0 && !initialLoad) {
+        if (downloadSize == 0) {
             downloadStopwatch.stop();
-            addString(`${new Date().toISOString()} Downloaded ${downloadSize} lists in ${downloadStopwatch.getElapsedTime()} ms`);
+            addString(`${new Date().toISOString()} ${downloadSize} sync operations completed in ${downloadStopwatch.getElapsedTime()} ms`);
             downloadStopwatch.reset()
         }
     }, [downloadedRows]);
