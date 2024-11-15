@@ -93,7 +93,7 @@ export default function TodoListsPage() {
                 <S.FloatingActionButton onClick={() => deleteLists()} sx={{right: 20}}>
                     {'clear'}
                 </S.FloatingActionButton>
-                <S.FloatingActionButton onClick={() => createNewList(200)} sx={{right: 100}}>
+                <S.FloatingActionButton onClick={() => createNewList(2000)} sx={{right: 100}}>
                     {'insert 2k'}
                 </S.FloatingActionButton>
                 <S.FloatingActionButton onClick={() => createNewList(5000)} sx={{right: 200}}>
